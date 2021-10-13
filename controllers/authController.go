@@ -79,5 +79,20 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(token)
+	cookie := fiber.Cookie{
+		Name: "jwt",
+		Value: token,
+		Expires: time.Now().Add(time.Hour * 24),
+		// Bc front end doesn't need to access?
+		HTTPOnly: true,
+	}
+
+	// Before &: Cannot use 'cookie' (type Cookie) as the type *Cookie
+	// We do not actually want to use the actual data point of cookie, as it cannot intake that form of data
+	// Therefore we pass reference to the data - essentially imagine it's key name vs key value
+	c.Cookie(&cookie)
+
+	return c.JSON(fiber.Map{
+		"message": "success",
+	})
 }
