@@ -139,3 +139,30 @@ func Logout(c *fiber.Ctx) error {
 		"message": "success",
 	})
 }
+
+
+//TODO FIX ME
+func Restricted(c *fiber.Ctx) error {
+	cookie := c.Cookies("jwt")
+	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error){
+		return []byte(SecretKey), nil
+	})
+
+	if err != nil {
+		c.Status(fiber.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "Unauthenticated",
+		})
+	}
+
+	claims := token.Claims.(*jwt.StandardClaims)
+
+	var user models.User
+
+	// the pointer was the issue with the prev version
+	database.DB.Where("id = ?", claims.Issuer).First(&user)
+
+	var name = &user.Name
+
+	return c.SendString("Welcome " + *name)
+}
