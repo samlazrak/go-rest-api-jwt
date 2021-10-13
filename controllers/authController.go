@@ -5,7 +5,12 @@ import (
 	"jwt/models"
 	"golang.org/x/crypto/bcrypt"
 	"jwt/database"
+	"github.com/dgrijalva/jwt-go"
+	"strconv"
+	"time"
 )
+
+const SecretKey = "secret"
 
 func Register(c *fiber.Ctx) error {
 	// similar to array as string as key and string as value
@@ -60,5 +65,19 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(user)
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
+		// needs to be converted to string ( first int bc uint can't be used )
+		Issuer: strconv.Itoa(int(user.Id)),
+		// Conver to unix for general usablility?
+		ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	token, err := claims.SignedString([]byte(SecretKey))
+	if err != nil {
+		return c.JSON(fiber.Map{
+			"message": "Not logged in",
+		})
+	}
+
+	return c.JSON(token)
 }
