@@ -1,11 +1,11 @@
 package controllers
 
 import (
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
-	"jwt/models"
 	"golang.org/x/crypto/bcrypt"
 	"jwt/database"
-	"github.com/dgrijalva/jwt-go"
+	"jwt/models"
 	"strconv"
 	"time"
 )
@@ -95,4 +95,31 @@ func Login(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "success",
 	})
+}
+
+func User(c *fiber.Ctx) error {
+	cookie := c.Cookies("jwt")
+	// since cookie is already string good to go
+	// why & on the function
+	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error){
+		return []byte(SecretKey), nil
+	})
+
+	if err != nil {
+		c.Status(fiber.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "unauthenticated",
+		})
+	}
+
+	// need the standardclaims version for the issuer
+	// Needs to be a POINTER! why?
+	claims := token.Claims.(*jwt.StandardClaims)
+
+	var user models.User
+
+	// the pointer was the issue with the prev version
+	database.DB.Where("id = ?", claims.Issuer).First(&user)
+
+	return c.JSON(user)
 }
